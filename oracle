@@ -1,0 +1,50 @@
+Imagine an oracle table which has id and order_id columns. Table have same order_id with different id's.
+
+
+
+Example;
+
+
+
+      ORDER_ID                ID
+
+623cdc7ff2f3603b06a283ff    8112686  
+
+623cdc7ff2f3603b06a283ff    8116869
+
+623cdc7ff2f3603b06a28400    8117671
+
+623ce4068c47be1532c4c53c    8118392
+
+
+Write a select for group same order_ids, and show in one line which seperated with comma; //Please send sql.
+
+Select result should be like that;
+
+
+
+ORDER_ID                    ID
+
+623cdc7ff2f3603b06a283ff    8112686 , 8116869
+
+623cdc7ff2f3603b06a28400    8117671
+
+623ce4068c47be1532c4c53c    8118392
+
+oracle 
+
+You can achieve the desired result using the Oracle SQL `LISTAGG` function to group the IDs for the same `ORDER_ID` and concatenate them with commas. Here's the SQL query to do that:
+
+```sql
+SELECT
+  ORDER_ID,
+  LISTAGG(ID, ', ') WITHIN GROUP (ORDER BY ID) AS ID_LIST
+FROM
+  your_table_name
+GROUP BY
+  ORDER_ID
+ORDER BY
+  ORDER_ID;
+
+
+Make sure to replace `your_table_name` with the actual name of your Oracle table. This query will group the records by `ORDER_ID` and concatenate the corresponding `ID` values into a comma-separated list in the `ID_LIST` column.

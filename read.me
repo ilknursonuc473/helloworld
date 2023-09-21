@@ -1,0 +1,151 @@
+ Spring Boot "helloworld" projesini Kubernetes, Ingress, GitHub entegrasyonu ve CI/CD için Jenkins kullanarak oluşturmak kapsamlı bir işlemdir. Aşağıda bu işlemlemleri adım adım inceleyelim.
+
+**Adım 1: Spring Boot Projesi Oluşturun**
+1. Yeni bir Spring Boot projesi oluşturun veya var olan bir proje kullanın. Spring Initializer'ı kullanarak Maven veya Gradle ile temel bir Spring Boot projesi oluşturabilirsiniz.
+
+package com.example.helloworld;
+
+import org.springframework.boot.SpringApplication;
+import org.springframework.boot.autoconfigure.SpringBootApplication;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.RestController;
+
+@SpringBootApplication
+public class helloworldApplication {
+
+    public static void main(String[] args) {
+        SpringApplication.run(helloworldApplication.class, args);
+    }
+}
+
+@RestController
+class helloworldController {
+
+    @GetMapping("/merha")
+    public String helloworld() {
+        return "hello, world!";
+    }
+}
+
+
+**Adım 2: Uygulamayı Konteynerleştirin**
+2. Spring Boot uygulamanızı bir Docker imajı oluşturacak bir Docker dosyası (Dockerfile) ile paketleyin. Docker imajını oluşturun
+
+
+# OpenJDK 11 tabanlı Docker imajını kullan
+FROM openjdk:11-jre-slim
+
+# Uygulama dosyalarını konteynere kopyala
+COPY target/helloworld-*.jar /app/app.jar
+
+# Çalışma dizini olarak /app'i ayarla
+WORKDIR /app
+
+# Uygulamayı çalıştır
+CMD ["java", "-jar", "app.jar"]
+
+**Adım 3: Kubernetes Dağıtımını ve Hizmetini Oluşturun**
+3. Spring Boot uygulamanız için Kubernetes Dağıtımı ve Hizmeti yapılandırma YAML dosyası oluşturun.(var olan bir k8s clustera sahip değilseniz önce kurulum gerekir)
+
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: helloworld-deployment
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: helloworld
+  template:
+    metadata:
+      labels:
+        app: helloworld
+    spec:
+      containers:
+      - name: helloworld
+        image: your-registry/your-image:tag
+
+
+----------
+
+apiVersion: v1
+kind: Service
+metadata:
+  name: helloworld-service
+spec:
+  selector:
+    app: helloworld
+  ports:
+    - protocol: "TCP"
+      port: 80
+      targetPort: 80
+  type: LoadBalancer
+
+
+**Adım 8: Jenkins Pipeline'ını Yapılandırın**
+8. CI/CD sürecini otomatikleştirmek için bir Jenkins Pipeline oluşturun. Pipeline, uygulamayı derlemek, konteynerleştirmek, kaynağa itmek ve Kubernetes'e dağıtmak için aşamalar içermelidir.
+
+pipeline {
+    agent any
+
+    stages {
+        stage('Checkout') {
+            steps {
+                // Jenkins, projenizi bu aşamada klonlar
+                checkout scm
+            }
+        }
+
+        stage('Build and Test') {
+            steps {
+                // Maven'ı kullanarak uygulamayı paketle ve test et
+                sh 'mvn clean package'
+            }
+        }
+
+        stage('Docker Build and Publish') {
+            steps {
+                // Docker imajını oluştur ve yayınla
+                script {
+                    def appVersion = sh(returnStdout: true, script: 'mvn help:evaluate -Dexpression=project.version -q -DforceStdout').trim()
+                    docker.build("helloworld:${appVersion}", "-f Dockerfile .")
+                    docker.withRegistry('https://github.com/ilknursonuc473/helloworld', 'docker-credentials-id') {
+                        docker.image("helloworld:${appVersion}").push()
+                    }
+                }
+            }
+        }
+    }
+}
+
+
+pipeline {
+    agent any
+    environment {
+        KUBECONFIG_CREDENTIALS = credentials('kubeconfig-credential-id')
+    }
+    stages {
+        stage('Checkout') {
+            steps {
+                checkout scm
+            }
+        }
+        stage('Deploy to Kubernetes') {
+            steps {
+                sh '''
+                    cp $KUBECONFIG_CREDENTIALS /tmp/kubeconfig
+                    export KUBECONFIG=/tmp/kubeconfig
+                    kubectl apply -f helloworlddeployment.yaml
+                
+            }
+        }
+    }
+}
+
+
+**Adım 10: CI/CD Pipeline'ını Çalıştırın**
+10. Yeni bir GitHub deposuna yapılan bir işlem olduğunda Jenkins pipeline'ını tetikleyin. Jenkins otomatik olarak uygulamanızı derler, test eder, konteynerleştirir ve dağıtır.
+
+
+
+

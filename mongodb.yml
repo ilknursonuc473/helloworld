@@ -1,0 +1,25 @@
+Imagine a mongo collection which has gsm,password and insert_date columns. gsm can be null or equals a number.insert_date and password are default exists.
+
+Write a mongo query for getting records insert_date which greater than April 1 for exists gsms.//Please send query.
+
+Example records;
+
+gsm:5422322323
+
+password:123456
+
+insert_date:2022-03-11T14:16:30.228+00:00
+
+Answer:
+You can use the following MongoDB query to retrieve records where the "gsm" field is not null and the "insert_date" is greater than April 1:
+
+db.collection.find({
+  gsm: { $ne: null },
+  insert_date: { $gt: new Date("2022-04-01T00:00:00Z") }
+})
+
+This query does the following:
+gsm: { $ne: null }: This part of the query ensures that the "gsm" field is not null.
+insert_date: { $gt: new Date("2022-04-01T00:00:00Z") }: This part of the query specifies that you want records where the "insert_date" is greater than April 1, 2022.
+Make sure to replace "collection" with the actual name of your MongoDB collection in the query.
+
